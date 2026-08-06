@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SahaDakika — Güncel Spor Haberleri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #070707;
+    --card: #131313;
+    --cream: #F5F2EA;
+    --muted: #7A7568;
+    --futbol: #FF4D00;
+    --basketbol: #00D4FF;
+    --voleybol: #FF2E93;
+    --diger: #FFD400;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--black); color: var(--cream); font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .black-font { font-family: 'Archivo Black', sans-serif; text-transform: uppercase; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: 0.4; transform: scale(0.8);} }
+  .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--futbol); animation: pulse 1.2s ease-in-out infinite; }
+
+  header { padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 24px; }
+  .logo span { color: var(--futbol); }
+  .dots { display: flex; gap: 6px; }
+  .dots div { width: 10px; height: 10px; border-radius: 50%; }
+
+  .scores { padding: 0 24px 20px; display: flex; gap: 10px; overflow-x: auto; max-width: 1200px; margin: 0 auto; }
+  .score-card { flex: 0 0 auto; background: var(--card); border-top: 3px solid var(--futbol); padding: 10px 16px; min-width: 190px; border-radius: 4px; }
+  .score-status { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 10px; font-weight: 700; }
+  .score-status.live { color: var(--futbol); display: flex; align-items: center; gap: 4px; }
+  .score-status.finished { color: var(--muted); }
+  .team-row { font-size: 13px; font-weight: 500; }
+
+  .filters { padding: 0 24px 28px; display: flex; gap: 10px; flex-wrap: wrap; max-width: 1200px; margin: 0 auto; }
+  .filter-btn { padding: 8px 16px; font-size: 11px; border-radius: 999px; border: 2px solid #2A2A2A; background: transparent; color: var(--cream); cursor: pointer; font-family: inherit; }
+  .filter-btn.active-all { border-color: var(--cream); background: var(--cream); color: var(--black); }
+
+  main { padding: 0 24px 48px; max-width: 1200px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .hero-card { grid-column: span 2; grid-row: span 2; position: relative; border-radius: 10px; overflow: hidden; min-height: 320px; }
+  .hero-card img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+  .hero-overlay { position: absolute; inset: 0; background: linear-gradient(0deg, var(--black) 5%, rgba(7,7,7,0.1) 60%); }
+  .hero-text { position: absolute; left: 24px; right: 24px; bottom: 24px; }
+  .tag { display: inline-block; padding: 5px 12px; font-size: 11px; border-radius: 3px; color: var(--black); }
+  .hero-title { font-size: clamp(24px, 3.2vw, 38px); line-height: 1.08; margin-top: 14px; max-width: 640px; }
+  .hero-time { margin-top: 10px; color: var(--muted); font-size: 12px; font-weight: 600; }
+
+  .story-card { background: var(--card); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+  .story-card img { width: 100%; height: 150px; object-fit: cover; display: block; }
+  .story-img-wrap { position: relative; }
+  .story-tag { position: absolute; top: 10px; left: 10px; padding: 4px 10px; font-size: 10px; border-radius: 3px; color: var(--black); }
+  .story-body { padding: 16px; }
+  .story-title { font-size: 15px; line-height: 1.25; margin-bottom: 8px; }
+  .story-time { color: var(--muted); font-size: 11px; font-weight: 600; }
+
+  footer { padding: 24px; text-align: center; color: #3D3A34; font-size: 12px; border-top: 1px solid #1A1A1A; }
+
+  @media (max-width: 700px) {
+    .hero-card { grid-column: span 1; grid-row: span 1; min-height: 260px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo black-font">SAHA<span>DAKİKA</span></div>
+  <div class="dots">
+    <div style="background:#FF4D00"></div>
+    <div style="background:#00D4FF"></div>
+    <div style="background:#FF2E93"></div>
+    <div style="background:#FFD400"></div>
+  </div>
+</header>
+
+<div class="scores" id="scores"></div>
+<div class="filters" id="filters"></div>
+<main><div class="grid" id="grid"></div></main>
+
+<footer>Bu bir demo sürümdür — haberler örnek içeriktir. Otomatik içerik üretimi bağlandığında burası gerçek haberlerle güncellenecek.</footer>
+
+<script>
+const CATCOLOR = { 'Futbol': '#FF4D00', 'Basketbol': '#00D4FF', 'Voleybol': '#FF2E93', 'Diğer': '#FFD400' };
+
+const MATCHES = [
+  { home: 'Fenerbahçe', away: 'Trabzonspor', hs: 2, as: 1, status: 'live', min: "78'" },
+  { home: 'Galatasaray', away: 'Beşiktaş', hs: 1, as: 1, status: 'live', min: "54'" },
+  { home: 'Anadolu Efes', away: 'Fenerbahçe Beko', hs: 88, as: 82, status: 'finished', min: 'MS' },
+  { home: 'Başakşehir', away: 'Antalyaspor', hs: 0, as: 0, status: 'live', min: "12'" },
+  { home: 'Türkiye', away: 'Sırbistan', hs: 3, as: 2, status: 'finished', min: 'MS' },
+];
+
+const STORIES = [
+  { cat: 'Futbol', tag: 'SÜPER LİG', time: '12 dk önce', title: 'Derbide gerilim yükseldi: iki kırmızı kart', img: 'stadium1', big: true },
+  { cat: 'Basketbol', tag: 'EUROLEAGUE', time: '34 dk önce', title: 'Uzatmada son saniye basketi maçı belirledi', img: 'basketball1' },
+  { cat: 'Futbol', tag: 'TRANSFER', time: '1 sa önce', title: 'Orta saha transferinde imzalar atıldı', img: 'transfer1' },
+  { cat: 'Voleybol', tag: 'MİLLİ TAKIM', time: '2 sa önce', title: 'Kadın Voleybol Takımı çeyrek finalde', img: 'volleyball1' },
+  { cat: 'Diğer', tag: 'FORMULA 1', time: '3 sa önce', title: 'Sıralama turlarında sürpriz sonuç', img: 'f1race1' },
+  { cat: 'Basketbol', tag: 'TBL', time: '5 sa önce', title: 'Genç oyuncu haftanın oyuncusu seçildi', img: 'basketball2' },
+  { cat: 'Futbol', tag: 'AVRUPA LİGİ', time: '6 sa önce', title: 'Deplasmanda alınan galibiyet turu garantiledi', img: 'stadium2' },
+];
+
+let active = 'Tümü';
+
+function imgUrl(seed, w, h) { return `https://picsum.photos/seed/${seed}/${w}/${h}`; }
+
+function renderScores() {
+  const el = document.getElementById('scores');
+  el.innerHTML = MATCHES.map(m => `
+    <div class="score-card">
+      <div class="score-status ${m.status}">
+        ${m.status === 'live' ? `<span class="live-dot"></span> CANLI ${m.min}` : 'SONUÇ'}
+      </div>
+      <div class="team-row">${m.home} <b>${m.hs}</b></div>
+      <div class="team-row">${m.away} <b>${m.as}</b></div>
+    </div>
+  `).join('');
+}
+
+function renderFilters() {
+  const cats = ['Tümü', ...Object.keys(CATCOLOR)];
+  const el = document.getElementById('filters');
+  el.innerHTML = cats.map(c => {
+    const color = CATCOLOR[c] || '#F5F2EA';
+    const isActive = active === c;
+    const style = c === 'Tümü'
+      ? `border-color:${isActive ? '#F5F2EA' : '#2A2A2A'}; background:${isActive ? '#F5F2EA' : 'transparent'}; color:${isActive ? '#070707' : '#F5F2EA'};`
+      : `border-color:${color}; background:${isActive ? color : 'transparent'}; color:${isActive ? '#070707' : color};`;
+    return `<button class="filter-btn black-font" style="${style}" onclick="setActive('${c}')">${c}</button>`;
+  }).join('');
+}
+
+function setActive(c) { active = c; renderFilters(); renderGrid(); }
+window.setActive = setActive;
+
+function renderGrid() {
+  const filtered = active === 'Tümü' ? STORIES : STORIES.filter(s => s.cat === active);
+  const big = filtered.find(s => s.big) || filtered[0];
+  const rest = filtered.filter(s => s !== big);
+  const el = document.getElementById('grid');
+
+  let html = '';
+  if (big) {
+    html += `
+      <div class="hero-card">
+        <img src="${imgUrl(big.img, 1000, 700)}" alt="">
+        <div class="hero-overlay"></div>
+        <div class="hero-text">
+          <span class="tag black-font" style="background:${CATCOLOR[big.cat]}">${big.tag}</span>
+          <h1 class="hero-title black-font">${big.title}</h1>
+          <div class="hero-time">${big.time}</div>
+        </div>
+      </div>`;
+  }
+  html += rest.map(s => `
+    <article class="story-card">
+      <div class="story-img-wrap">
+        <img src="${imgUrl(s.img, 500, 300)}" alt="">
+        <span class="story-tag black-font" style="background:${CATCOLOR[s.cat]}">${s.tag}</span>
+      </div>
+      <div class="story-body">
+        <h3 class="story-title black-font">${s.title}</h3>
+        <div class="story-time">${s.time}</div>
+      </div>
+    </article>
+  `).join('');
+
+  el.innerHTML = html || '<p style="color:#7A7568">Bu kategoride henüz haber yok.</p>';
+}
+
+renderScores();
+renderFilters();
+renderGrid();
+</script>
+</body>
+</html>
